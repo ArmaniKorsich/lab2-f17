@@ -223,8 +223,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
   char *mem;
   uint a;
-
-  if(newsz >= (KERNBASE - 2*PGSIZE))
+  if(newsz >= KERNBASE)
     return 0;
   if(newsz < oldsz)
     return oldsz;
@@ -245,7 +244,9 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       return 0;
     }
   }
+  cprintf("complete: oldsz: %d\nnewsz: %d\n", oldsz, newsz);
   return newsz;
+
 }
 
 // Deallocate user pages to bring the process size from oldsz to
@@ -325,8 +326,9 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
+    if(!(*pte & PTE_P)) {
       panic("copyuvm: page not present");
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
@@ -337,13 +339,12 @@ copyuvm(pde_t *pgdir, uint sz)
   }
 
 //repeat process to copy the userstack and page guard as well.
-  for(i = (KERNBASE - PGSIZE + 1); i > (KERNBASE - 2*PGSIZE + 1); i -= PGSIZE){
-    if((KERNBASE - 2*PGSIZE + 1) < sz)
-      panic("copyuvm: out of free space");
+  for(i = PGROUNDUP(KERNBASE - 2*PGSIZE -1); i < PGROUNDUP(KERNBASE); i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
-      panic("copyuvm: pte shopuld exist");
-    if(~(*pte & PTE_P))
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P)) {
       panic("copyuvm: page not present");
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
