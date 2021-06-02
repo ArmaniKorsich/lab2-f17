@@ -62,11 +62,23 @@ exec(char *path, char **argv)
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  sz = PGROUNDUP(sz);
+
+  sz = PGROUNDUP(sz); //at this line, sz is at the top of "user stack and code"
+  //i need to allocate the user stack and page guard beneath kernbase, and then put the heap in between.
+  
+  if((sp = allocuvm(pgdir, KERNBASE-2*PGSIZE, KERNBASE)) == 0)
+    goto bad;
+  clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
+  //sp is at the top of user stack / page guard, and at this point sp == kernbase. (should)
+  //-////ORIGINAL////
+  /*sz = PGROUNDUP(sz);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
-  sp = sz;
+  sp = sz; //in the original code, at this line, sp should be at the top of the user stack and page guard.
+  */
+  //-////ORIGINAL////
+
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
