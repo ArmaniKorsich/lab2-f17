@@ -65,7 +65,8 @@ exec(char *path, char **argv)
 
   sz = PGROUNDUP(sz); //at this line, sz is at the top of "user stack and code"
   //i need to allocate the user stack and page guard beneath kernbase, and then put the heap in between.
-  
+  sp = KERNBASE - 2*PGSIZE;
+
   if((sp = allocuvm(pgdir, KERNBASE-2*PGSIZE, KERNBASE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sp - 2*PGSIZE));
